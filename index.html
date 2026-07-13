@@ -754,11 +754,14 @@ function getCurrentBlockInfo(){
 }
 
 // ---------------- PERSISTENCE ----------------
+// Uses localStorage so data persists across visits once deployed (e.g. on Vercel).
+const STORAGE_KEY = "io2026-tracker-data";
+
 async function loadData(){
   try{
-    const res = await window.storage.get("io2026-tracker-data", false);
-    if(res && res.value){
-      const parsed = JSON.parse(res.value);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
       state.edits = parsed.edits || {};
       state.shot = parsed.shot || {};
       state.checklist = parsed.checklist || {};
@@ -766,7 +769,7 @@ async function loadData(){
       state.ideas = parsed.ideas || [];
       state.customChecklistItems = parsed.customChecklistItems || {};
     }
-  }catch(e){ /* no saved data yet */ }
+  }catch(e){ /* no saved data yet, or storage unavailable */ }
   state.loaded = true;
   render();
 }
@@ -781,8 +784,8 @@ async function persist(){
   try{
     state.saveStatus = "Saving…";
     renderSaveStatus();
-    const result = await window.storage.set("io2026-tracker-data", JSON.stringify(payload), false);
-    state.saveStatus = result ? "Saved" : "Save failed";
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    state.saveStatus = "Saved";
   }catch(e){
     state.saveStatus = "Save failed";
   }
@@ -790,7 +793,7 @@ async function persist(){
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(()=>{ state.saveStatus=""; renderSaveStatus(); }, 1500);
 }
-
+  
 function renderSaveStatus(){
   const el = document.getElementById('save-status');
   if(el) el.textContent = state.saveStatus;
